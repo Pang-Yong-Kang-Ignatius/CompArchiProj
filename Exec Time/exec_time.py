@@ -1,26 +1,86 @@
 # ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
+# Input: clock cycle time, instruction counts and CPIs for 4 instruction types
+# Output: execution time in seconds
 
-def ask_float(prompt):
-    return float(input(prompt))
+NUM_INSTR_TYPES = 4
 
-def ask_int(prompt):
-    return int(input(prompt))
 
-t_clk = ask_float("1) The value of clock cycle time (in second): ")
+def get_positive_float(prompt):
+    """Get a positive float from user with validation."""
+    while True:
+        try:
+            value = float(input(prompt))
+            if value > 0:
+                return value
+        except ValueError:
+            continue
 
-c1 = ask_int("2) The counts of Type 1 instruction (Instruction1_count): ")
-cpi1 = ask_float("3) The CPI of Type 1 instruction (CPI_1): ")
 
-c2 = ask_int("4) The counts of Type 2 instruction (Instruction2_count): ")
-cpi2 = ask_float("5) The CPI of Type 2 instruction (CPI_2): ")
+def get_non_negative_int(prompt):
+    """Get a non-negative integer from user with validation."""
+    while True:
+        try:
+            value = int(input(prompt))
+            if value >= 0:
+                return value
+        except ValueError:
+            continue
 
-c3 = ask_int("6) The counts of Type 3 instruction (Instruction3_count): ")
-cpi3 = ask_float("7) The CPI of Type 3 instruction (CPI_3): ")
 
-c4 = ask_int("8) The counts of Type 4 instruction (Instruction4_count): ")
-cpi4 = ask_float("9) The CPI of Type 4 instruction (CPI_4): ")
+def get_instruction_metrics(num_types):
+    """Collect instruction counts and CPIs for all instruction types.
+    
+    Args:
+        num_types: Number of instruction types to collect data for
+        
+    Returns:
+        tuple: (counts, cpis) - lists of instruction counts and CPI values
+    """
+    counts = []
+    cpis = []
+    
+    for i in range(num_types):
+        count = get_non_negative_int(
+            f"{2 + i * 2}) The counts of Type {i + 1} instruction (Instruction{i + 1}_count): "
+        )
+        counts.append(count)
+        
+        cpi = get_positive_float(
+            f"{3 + i * 2}) The CPI of Type {i + 1} instruction (CPI_{i + 1}): "
+        )
+        cpis.append(cpi)
+    
+    return counts, cpis
 
-total_cycles = c1*cpi1 + c2*cpi2 + c3*cpi3 + c4*cpi4
-exec_time = t_clk * total_cycles
 
-print(f"The execution time of this software program is {exec_time:.6f} second.")
+def calculate_execution_time(clock_time, counts, cpis):
+    """Calculate total execution time.
+    
+    Args:
+        clock_time: Clock cycle time in seconds
+        counts: List of instruction counts
+        cpis: List of CPI values
+        
+    Returns:
+        float: Execution time in seconds
+    """
+    total_cycles = sum(count * cpi for count, cpi in zip(counts, cpis))
+    return clock_time * total_cycles
+
+
+def main():
+    """Calculate and display execution time based on instruction metrics."""
+    # Get clock cycle time
+    t_clk = get_positive_float("1) The value of clock cycle time (in second): ")
+    
+    # Get instruction counts and CPIs
+    counts, cpis = get_instruction_metrics(NUM_INSTR_TYPES)
+    
+    # Calculate execution time
+    exec_time = calculate_execution_time(t_clk, counts, cpis)
+    
+    # Display result
+    print(f"\nThe execution time of this software program is {exec_time:.6f} second.")
+
+if __name__ == "__main__":
+    main()
