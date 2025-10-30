@@ -1,20 +1,38 @@
-import os            # imports the os module to work with files and directories
-import zipfile       # imports the zipfile module to create or read .zip files
+import os
+import zipfile
 
-txt_files = []       # create an empty list to store names of .txt files
+# get current working directory
+current_dir = os.getcwd() #the folder where this script runs
 
-# go through every file in the current directory
-for file in os.listdir():
-    # check if the file ends with .txt and is an actual file (not a folder)
-    if file.endswith(".txt") and os.path.isfile(file):
-        txt_files.append(file)   # add it to the list
+# ask user for zip file name
+zip_name = input("Enter a name for your zip file (without .zip): ").strip()
 
-count = len(txt_files)           # count how many .txt files were found
+# check what user entered
+if zip_name == "": 
+    zip_name = "mytxt"
+    print("No name entered. Using default name: mytxt.zip")
+elif zip_name.lower().endswith(".zip"): 
+    # remove the .zip part if user typed it
+    zip_name = zip_name[:-4].strip() # remove last 4 characters
+    print("Removed '.zip' from your input to avoid duplication.")
 
-# create a new zip file called mytxt.zip in write mode
-with zipfile.ZipFile("mytxt.zip", "w") as zipf:
-    for f in txt_files:          # loop through each text file
-        zipf.write(f)            # add the file to the zip
+# final zip file path
+zip_path = os.path.join(current_dir, zip_name + ".zip")
 
-# print how many .txt files were found and that they were compressed
-print("There are", count, ".txt files and compressed into a zip file")
+# find all .txt files in the folder
+txt_files = []
+for f in os.listdir(current_dir):
+    if f.lower().endswith(".txt") and os.path.isfile(f):
+        txt_files.append(f)
+
+count = len(txt_files)
+
+# create the zip only if there are .txt files
+if count > 0:
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for f in txt_files:
+            zipf.write(f, arcname=os.path.basename(f))
+    print("There are", count, ".txt files and they were compressed into:")
+    print(zip_path)
+else:
+    print("No .txt files found in this directory.")

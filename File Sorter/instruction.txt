@@ -1,0 +1,7 @@
+for the C code user would need to go to their MSYS2 Terminal
+pacman -S zip
+
+
+
+
+there might be a need to sudo apt install zip or pip install zip
