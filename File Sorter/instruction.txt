@@ -4,4 +4,5 @@ pacman -S zip
 
 
 
-there might be a need to sudo apt install zip or pip install zip
+there might be a need to sudo apt install zip or pip install zip in Pi 
+also need to install python lol
