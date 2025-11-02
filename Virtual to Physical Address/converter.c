@@ -22,13 +22,9 @@ int main() {
 
         // Check if only 0 or 1
         int valid = 1;
-        if (strlen(binary1) == 8 && strspn(binary1, "01") == 8) {
-            continue;
+        if (strlen(binary1) != 5 && strspn(binary1, "01") !=5) {
+            valid = 0;
         } 
-        else {
-            valid = 0; // invalid
-    }
-
 
         if (!valid) {
             printf("Please enter a valid binary number (only 0s and 1s allowed).\n");
