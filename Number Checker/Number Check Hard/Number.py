@@ -1,11 +1,23 @@
-# Ask user to enter 8 numbers
+# Ask user to enter 8 valid integers
 numbers = []
-for i in range(8):
-    num = int(input(f"Enter number {i + 1}: "))
-    numbers.append(num)
+i = 0
+while i < 8:
+    num_str = input(f"Enter number {i + 1}: ")
+    if num_str.lstrip('-').isdigit():     # check if input is a valid integer
+        numbers.append(int(num_str))
+        i += 1
+    else:
+        print("Invalid input! Please enter an integer.")
 
 # Ask for target number
-target = int(input("Enter a number to check: "))
+while True:
+    target_str = input("Enter a number to check: ")
+    if target_str.lstrip('-').isdigit():
+        target = int(target_str)
+        break
+    else:
+        print("Invalid input! Please enter an integer.")
+
 found = False
 
 # Check if any two numbers add up to the target

@@ -8,12 +8,27 @@ int main() {
 
     printf("Enter 8 numbers:\n");
     for (int i = 0; i < size; i++) {
-        printf("Enter number %d: ", i + 1);
-        scanf("%d", &list[i]);
+        while (1) {
+            printf("Enter number %d: ", i + 1);
+            if (scanf("%d", &list[i]) == 1) {
+                break; // valid integer entered
+            } else {
+                printf("Invalid input! Please enter an integer.\n");
+                while (getchar() != '\n'); // clear invalid input
+            }
+        }
     }
 
-    printf("Enter a number to check: ");
-    scanf("%d", &target);
+    while (1) {
+        printf("Enter a number to check: ");
+        if (scanf("%d", &target) == 1) {
+            break; // valid integer entered
+        } 
+        else {
+            printf("Invalid input! Please enter an integer.\n");
+            while (getchar() != '\n'); // clear invalid input
+        }
+    }
 
     for (int i = 0; i < size; i++) {
         for (int j = i + 1; j < size; j++) {

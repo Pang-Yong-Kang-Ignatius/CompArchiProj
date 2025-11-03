@@ -24,11 +24,11 @@ void prime_check(int x)
     /* if input is 1 OR greater than 2 AND remainder of input mod 2 is equal to 0*/
     /* then input is a prime number*/
     if (x <= 1 || ((x > 2) && (x%2 == 0)))
-        printf("%d is a not prime number", x);
+        printf("%d is a not prime number\n", x);
     else
         if (x==2)
         {
-            printf("%d is a prime number", x);
+            printf("%d is a prime number\n", x);
         }
         else{
 
@@ -39,11 +39,11 @@ void prime_check(int x)
             }
              if (xyz > 0)
             {
-                printf("%d is not prime number", x);
+                printf("%d is not prime number\n", x);
             }
             else
             {
-                printf("%d is prime number", x);
+                printf("%d is prime number\n", x);
             }
         }
 

@@ -1,91 +1,91 @@
-section .data
-    prompt1 db "Please input first number: ", 0
-    prompt2 db "Please input second number: ", 0
-    prompt3 db "Please input third number: ", 0
-    output_msg db "The largest number is %d", 10, 0
-    format_in db "%d", 0
+    .section .rodata
+prompt:     .asciz "Enter number %d: "
+fmt_in:     .asciz "%d"
+msg_out:    .asciz "The largest number is: %d\n"
 
-section .bss
-    num1_input resd 1
-    num2_input resd 1
-    num3_input resd 1
+    .section .bss
+    .align 4
+nums:       .space 12                 // 3 * 4 bytes (int)
 
-section .text
-    global _start
+    .text
+    .global main
+    .global largest
+    .extern printf
+    .extern scanf
 
-    ; Declare external C functions for I/O
-    extern scanf
-    extern printf
-    extern exit
+// int main(void)
+main:
+    // prologue
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+    stp     x19, x20, [sp, -16]!
 
-_start:
-    ; --- Input num1 ---
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, prompt1    ; address of prompt1 string
-    mov edx, 27         ; length of prompt1 string
-    int 0x80
+    // i = 0
+    mov     x19, #0
 
-    push dword num1_input ; Push address of variable
-    push dword format_in  ; Push format string
-    call scanf            ; Call scanf
-    add esp, 8            ; Clean up stack
+// for (i = 0; i < 3; i++)
+.Lread_loop:
+    cmp     x19, #3
+    b.ge    .Lread_done
 
-    ; --- Input num2 ---
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, prompt2    ; address of prompt2 string
-    mov edx, 28         ; length of prompt2 string
-    int 0x80
+    // printf("Enter number %d: ", i+1)
+    ldr     x0, =prompt            // x0 = format
+    add     x1, x19, #1            // x1 = i+1
+    bl      printf
 
-    push dword num2_input
-    push dword format_in
-    call scanf
-    add esp, 8
+    // scanf("%d", &nums[i])
+    ldr     x0, =fmt_in            // x0 = "%d"
+    ldr     x20, =nums             // x20 = &nums[0]
+    add     x1, x20, x19, lsl #2   // x1 = &nums[i]
+    bl      scanf
 
-    ; --- Input num3 ---
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, prompt3    ; address of prompt3 string
-    mov edx, 27         ; length of prompt3 string
-    int 0x80
+    add     x19, x19, #1
+    b       .Lread_loop
 
-    push dword num3_input
-    push dword format_in
-    call scanf
-    add esp, 8
+.Lread_done:
+    // call largest(nums[0], nums[1], nums[2])
+    ldr     x20, =nums
+    ldr     w0, [x20, #0]          // a
+    ldr     w1, [x20, #4]          // b
+    ldr     w2, [x20, #8]          // c
+    bl      largest
 
-    ; --- Find the largest number ---
-    ; Load num1 into EAX (our current largest)
-    mov eax, [num1_input]
+    // return 0
+    mov     w0, #0
 
-    ; Compare with num2
-    mov ebx, [num2_input]
-    cmp eax, ebx
-    jge .check_num3 ; If num1 >= num2, keep num1 as largest and check num3
+    // epilogue
+    ldp     x19, x20, [sp], 16
+    ldp     x29, x30, [sp], 16
+    ret
 
-    ; If num2 > num1, then num2 is currently the largest
-    mov eax, ebx    ; EAX = num2
 
-.check_num3:
-    ; Compare with num3
-    mov ebx, [num3_input]
-    cmp eax, ebx
-    jge .found_largest ; If current largest (EAX) >= num3, then EAX is the largest
+// void largest(int a, int b, int c)
+// AArch64 calling convention: a,b,c in w0,w1,w2
+largest:
+    // prologue
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
 
-    ; If num3 > current largest, then num3 is the largest
-    mov eax, ebx    ; EAX = num3
+    // Determine largest in w3
+    mov     w3, w0                 // largest = a
 
-.found_largest:
-    ; EAX now holds the largest number
+    // if (b > largest) largest = b;
+    cmp     w1, w3
+    ble     .Lskip_b
+    mov     w3, w1
+.Lskip_b:
 
-    ; --- Output the largest number ---
-    push eax            ; Push the largest number
-    push dword output_msg ; Push the format string
-    call printf         ; Call printf
-    add esp, 8          ; Clean up stack
+    // if (c > largest) largest = c;
+    cmp     w2, w3
+    ble     .Lskip_c
+    mov     w3, w2
+.Lskip_c:
 
-    ; --- Exit ---
-    mov eax, 1          ; sys_exit
-    xor ebx, ebx        ; exit code 0
-    int 0x80
+    // printf("The largest number is: %d\n", largest)
+    ldr     x0, =msg_out           // format
+    mov     w1, w3                 // value
+    bl      printf
+
+    // epilogue
+    ldp     x29, x30, [sp], 16
+    ret
