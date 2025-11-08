@@ -1,3 +1,5 @@
+import time
+
 # Ask user to enter 8 valid integers
 numbers = []
 i = 0
@@ -19,18 +21,33 @@ while True:
         print("Invalid input! Please enter an integer.")
 
 found = False
+REPEAT = 1_000_000   # repeat one million times for accurate timing
 
-# Check if any two numbers add up to the target
-for i in range(len(numbers)):
-    for j in range(i + 1, len(numbers)):
-        if numbers[i] + numbers[j] == target:
-            found = True
+# ✅ Start timing only for the checking process
+start_time = time.perf_counter()
+
+for _ in range(REPEAT):
+    found = False
+    for i in range(len(numbers)):
+        for j in range(i + 1, len(numbers)):
+            if numbers[i] + numbers[j] == target:
+                found = True
+                break
+        if found:
             break
-    if found:
-        break
+
+# ✅ Stop timing
+end_time = time.perf_counter()
+
+# Calculate total and average execution times
+elapsed_time = end_time - start_time
+avg_time = elapsed_time / REPEAT
 
 # Print result
 if found:
     print(f"There are two numbers in the list summing to the keyed-in number: {target}")
 else:
     print(f"There are not two numbers in the list summing to the keyed-in number: {target}")
+
+print(f"\nTotal execution time for {REPEAT:,} repetitions: {elapsed_time:.6f} seconds")
+print(f"Average execution time per run: {avg_time:.9f} seconds")
