@@ -39,11 +39,11 @@ int main() {
     closedir(folder);
 
     if (count > 0) {
-        clock_t start_time = clock();    // ✅ Start timing before zipping
+        clock_t start_time = clock();    // Start timing before zipping
 
         system(command);                 // the actual zipping command
 
-        clock_t end_time = clock();      // ✅ End timing after zipping
+        clock_t end_time = clock();      // End timing after zipping
         double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
         printf("There are %d .txt files. Created zip file: %s.zip\n", count, zip_name);

@@ -1,8 +1,10 @@
-for the C code user would need to go to their MSYS2 Terminal
-pacman -S zip
+In order to run the Text File Compression task, the following software packages must be installed on the system:
 
+- **zip utility**: Required for compressing `.txt` files into a `.zip` archive.
+  - **Linux (Ubuntu/Debian)**: `sudo apt-get install zip`
+  - **Linux (Arch/Manjaro)**: `sudo pacman -S zip`
 
-
-
-there might be a need to sudo apt install zip or pip install zip in Pi 
-also need to install python lol
+- **Python**: Required to run the Python implementation of the task.
+  - **Installation**: `pip install python`
+  
+These dependencies ensure that the program can create `.zip` files and run without errors.
