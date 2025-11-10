@@ -1,39 +1,37 @@
 # Import necessary modules
-import os  # For interacting with the operating system (file paths, directory listings, etc.)
-import zipfile  # For working with zip files (creating, extracting, etc.)
+import os       # For interacting with the operating system
+import zipfile  # For creating zip files
 
-# Get the current working directory
+# Get current working directory
 current_dir = os.getcwd()
 
-# Ask the user for a name for the zip file (without ".zip" at the end)
+# Ask user for zip file name
 zip_name = input("Enter a name for your zip file (without .zip): ").strip()
 
-# Check if the user entered an empty name
+# Handle empty input
 if zip_name == "":
-    zip_name = "mytxt"  # Use a default name if no name is entered
+    zip_name = "mytxt"
     print("No name entered. Using default name: mytxt.zip")
-# Check if the user entered a name with ".zip" (and remove it)
+# Remove ".zip" if included
 elif zip_name.lower().endswith(".zip"):
-    zip_name = zip_name[:-4].strip()  # Remove the ".zip" suffix to avoid duplication
+    zip_name = zip_name[:-4].strip()
     print("Removed '.zip' from your input to avoid duplication.")
 
-# Create the full path for the zip file to be created
+# Create zip file path
 zip_path = os.path.join(current_dir, zip_name + ".zip")
 
-# Find all .txt files in the current directory
+# Find all .txt files in the directory
 txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith(".txt") and os.path.isfile(f)]
-count = len(txt_files)  # Count the number of .txt files found
+count = len(txt_files)
 
-# Check if any .txt files were found
+# Compress if files exist
 if count > 0:
-    # Open the zip file in write mode and start adding files
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        # Loop through each .txt file and add it to the zip file
         for f in txt_files:
-            zipf.write(f, arcname=os.path.basename(f))  # Write each file to the zip, preserving the file name
+            zipf.write(f, arcname=os.path.basename(f))
 
-    # Print the results: number of files and zip file location
-    print(f"There are {count} .txt files and they were compressed into:\n{zip_path}")
+    # ✅ Final output (same tone as your C version)
+    print(f"There are number of {count} .txt files and compressed into a .zip file")
+    print(f"Created zip file path: {zip_path}")
 else:
-    # If no .txt files were found, inform the user
     print("No .txt files found in this directory.")

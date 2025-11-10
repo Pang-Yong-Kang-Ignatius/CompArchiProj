@@ -40,8 +40,8 @@ int main() {
     if (count > 0) {
         system(command); // Execute zip command
         printf("There are number of %d .txt files and compressed into a .zip file\n", count);
-    } 
-    else {
+        printf("Created zip file path: ./%s.zip\n", zip_name);
+    } else {
         printf("No .txt files found in this folder.\n");
     }
 
