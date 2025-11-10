@@ -1,54 +1,62 @@
 #include <stdio.h>
 
-// ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
-// Input: clock cycle time, instruction counts and CPIs for 4 instruction types
-// Output: execution time in seconds
-
 int main(void) {
+    const int NUM_TYPES = 4;
     double t_clk;
     long long count[4];
     double cpi[4];
+    double total_cycles = 0.0, exec_time = 0.0;
 
-    // Helper macro to clear invalid input buffer
-    #define CLEAR_INPUT() while (getchar() != '\n')
-
-    // Get clock cycle time
+    // Get clock cycle time (must be > 0)
     while (1) {
-        printf("1) The value of clock cycle time (in second): ");
-        if (scanf("%lf", &t_clk) == 1 && t_clk > 0)
+        printf("1) Enter the value of clock cycle time (in second): ");
+        if (scanf("%lf", &t_clk) == 1 && t_clk > 0) {
             break;
-        CLEAR_INPUT();
-    }
-
-    // Get counts and CPIs for 4 instruction types using for-loop
-    for (int i = 0; i < 4; i++) {
-        // instruction count
-        while (1) {
-            printf("%d) The counts of Type %d instruction (Instruction%d_count): ", 2 + i * 2, i + 1, i + 1);
-            if (scanf("%lld", &count[i]) == 1 && count[i] >= 0)
-                break;
-            CLEAR_INPUT();
-        }
-
-        // CPI
-        while (1) {
-            printf("%d) The CPI of Type %d instruction (CPI_%d): ", 3 + i * 2, i + 1, i + 1);
-            if (scanf("%lf", &cpi[i]) == 1 && cpi[i] >= 0)
-                break;
-            CLEAR_INPUT();
+        } else {
+            printf("   Invalid. Please enter a positive number.\n");
+            // clear invalid input
+            while (getchar() != '\n');
         }
     }
 
-    // Compute execution time
-    double total_cycles = 0;
-    for (int i = 0; i < 4; i++) {
-        total_cycles += count[i] * cpi[i];
+    // Get counts and CPIs for 4 instruction types
+    for (int i = 0; i < NUM_TYPES; i++) {
+
+        // count (must be >= 0)
+        while (1) {
+            printf("%d) Enter the count of Type %d instruction: ", 2 + i * 2, i + 1);
+            if (scanf("%lld", &count[i]) == 1 && count[i] >= 0) {
+                break;
+            } else {
+                printf("   Invalid. Please enter a non-negative whole number.\n");
+                while (getchar() != '\n');
+            }
+        }
+
+        // cpi (must be > 0)
+        while (1) {
+            printf("%d) Enter the CPI of Type %d instruction: ", 3 + i * 2, i + 1);
+            if (scanf("%lf", &cpi[i]) == 1 && cpi[i] > 0) {
+                break;
+            } else {
+                printf("   Invalid. Please enter a positive number.\n");
+                while (getchar() != '\n');
+            }
+        }
     }
 
-    double exec_time = t_clk * total_cycles;
+    // Compute total cycles
+    for (int i = 0; i < NUM_TYPES; i++) {
+        total_cycles = total_cycles + (count[i] * cpi[i]);
+    }
+
+    // Execution time
+    exec_time = t_clk * total_cycles;
 
     // Output result
-    printf("\nThe execution time of this software program is %.6f second.\n", exec_time);
+    printf("\n-------------------------------------------\n");
+    printf("The execution time of this program is %.6f seconds.\n", exec_time);
+    printf("-------------------------------------------\n");
 
     return 0;
 }
