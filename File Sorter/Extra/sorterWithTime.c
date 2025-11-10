@@ -1,7 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <stdlib.h>
+#include <time.h>   // for timing
 
 int main() {
     DIR *folder;
@@ -38,8 +39,15 @@ int main() {
     closedir(folder);
 
     if (count > 0) {
-        system(command); // Execute zip command
-        printf("There are number of %d .txt files and compressed into a .zip file\n", count);
+        clock_t start_time = clock();    // Start timing before zipping
+
+        system(command);                 // the actual zipping command
+
+        clock_t end_time = clock();      // End timing after zipping
+        double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+        printf("There are %d .txt files. Created zip file: %s.zip\n", count, zip_name);
+        printf("Zipping execution time: %.6f seconds\n", elapsed_time);
     } 
     else {
         printf("No .txt files found in this folder.\n");
