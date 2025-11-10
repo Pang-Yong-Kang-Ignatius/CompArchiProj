@@ -1,164 +1,150 @@
+// two_sum_repeated.s — ARM64 Assembly (Raspberry Pi 64-bit)
+// Functionality: same as earlier C version with timing using now_ns()
+// Build: gcc two_sum_repeated.s now_ns.c -o two_sum_repeated
+
     .section .rodata
-prompt1:    .asciz "Enter 8 numbers:\n" 
-prompt2:    .asciz "Enter number %d: "
 prompt3:    .asciz "Enter a number to check: "
-fmt_d:      .asciz "%d"                     // scanf format specifier for integers
+fmt_d:      .asciz "%d"
 msg_found:  .asciz "There are two numbers in the list summing to the keyed-in number %d\n"
 msg_not:    .asciz "There are not two numbers in the list summing to the keyed-in number %d\n"
-msg_inv:    .asciz "Invalid input! Please enter an integer.\n" // error message for invalid input
+msg_time:   .asciz "\nTotal: %llu ns for %d repetitions (avg %llu ns)\n"
+
+    .align 4
+list:       .word 1, 2, 4, 8, 16, 32, 64, 128          // fixed list of integers
 
     .section .bss
     .align 4
-list:       .space 32                       // reserve 8 * 4 bytes for list of integers
-target:     .space 4                        // reserve 4 bytes for target integer
+target:     .space 4                                   // space for target integer
 
     .text
     .global main
     .extern printf
     .extern scanf
-    .extern getchar
+    .extern now_ns
 
 // ------------------------------------------------------------
-// main() function start
+// Constants (assembler-level, not memory variables)
+// ------------------------------------------------------------
+SIZE    = 8
+REPEAT  = 1000000
+
+// ------------------------------------------------------------
+// main() — Measure execution time of repeated pair-sum checking
 // ------------------------------------------------------------
 main:
-    // --- Function prologue (stack frame setup) ---
-    stp     x29, x30, [sp, -16]!            // Save frame pointer and link register
-    mov     x29, sp                         // Set up new frame pointer
-    stp     x19, x20, [sp, -16]!            // Save callee-saved registers
-    stp     x21, x22, [sp, -16]!            // Save more registers for later use
+    // --- Prologue ---
+    stp     x29, x30, [sp, -64]!                      // save FP/LR
+    mov     x29, sp
+    stp     x19, x20, [sp, 16]
+    stp     x21, x22, [sp, 32]
+    stp     x23, x24, [sp, 48]
 
-    // --- Print initial prompt ---
-    ldr     x0, =prompt1                    // x0 = address of "Enter 8 numbers:\n"
-    bl      printf                          // call printf(prompt1)
-
-    mov     x19, #0                         // i = 0 (counter for input loop)
-    ldr     x21, =list                      // x21 = base address of list array
-
-// ------------------------------------------------------------
-// Read 8 numbers from user with input validation
-// ------------------------------------------------------------
-read_loop:
-    cmp     x19, #8                         // if (i >= 8)
-    b.ge    read_done                       // stop reading when 8 numbers entered
-
-read_one:
-    // --- print "Enter number %d: " ---
-    ldr     x0, =prompt2                    // x0 = format string
-    add     x1, x19, #1                     // x1 = i + 1 (argument for %d)
-    bl      printf                          // printf("Enter number %d: ", i+1)
-
-    // --- attempt to read integer ---
-    ldr     x0, =fmt_d                      // x0 = "%d"
-    add     x1, x21, x19, lsl #2            // x1 = &list[i]
-    bl      scanf                           // scanf("%d", &list[i]); return value in w0
-
-    cmp     w0, #1                          // did scanf read exactly 1 integer?
-    beq     read_ok                         // if yes, accept it
-
-    // --- invalid input handling ---
-    ldr     x0, =msg_inv                    // x0 = error message
-    bl      printf                          // printf("Invalid input! Please enter an integer.\n")
-
-    // --- clear invalid characters until newline ---
-clear_buf:
-    bl      getchar                         // getchar() returns char in w0
-    cmp     w0, #10                         // check if it is '\n'
-    b.ne    clear_buf                       // if not newline, keep clearing
-    b       read_one                        // retry same number input
-
-read_ok:
-    add     x19, x19, #1                    // i++
-    b       read_loop                       // continue reading next number
-
-// ------------------------------------------------------------
-// After reading all 8 numbers, get target number with validation
-// ------------------------------------------------------------
-read_done:
-read_target:
-    // --- prompt for target number ---
-    ldr     x0, =prompt3                    // x0 = "Enter a number to check: "
+    // --- Prompt user for target ---
+    ldr     x0, =prompt3                              // "Enter a number to check: "
     bl      printf
 
-    // --- attempt to read integer target ---
+    // --- Read target integer ---
     ldr     x0, =fmt_d
     ldr     x1, =target
     bl      scanf
 
-    cmp     w0, #1                          // did scanf read valid integer?
-    beq     have_target                     // if yes, proceed
+    // --- Get start time (ns) ---
+    bl      now_ns
+    mov     x23, x0                                   // x23 = start_time
 
-    // --- invalid target input ---
-    ldr     x0, =msg_inv
-    bl      printf
+    // --- Repeat loop counter ---
+    mov     w19, #0                                   // r = 0
 
-clr_tgt:
-    bl      getchar                         // clear input buffer
-    cmp     w0, #10                         // until newline '\n'
-    b.ne    clr_tgt
-    b       read_target                     // retry target input
+outer_repeat:
+    cmp     w19, #REPEAT                              // while (r < REPEAT)
+    b.ge    done_repeats
+
+    mov     w24, #0                                   // found = 0
+    mov     w20, #0                                   // i = 0
 
 // ------------------------------------------------------------
-// Pair sum checking logic (two nested loops)
+// Outer and inner loops over list pairs
 // ------------------------------------------------------------
-have_target:
-    mov     x22, #0                         // found = 0
-    mov     x19, #0                         // i = 0
+outer_i:
+    cmp     w20, #SIZE                                // if i >= SIZE
+    b.ge    end_i_loop
 
-outer_loop:
-    cmp     x19, #8                         // if i >= 8
-    b.ge    check_found                     // stop outer loop
-    add     x20, x19, #1                    // j = i + 1
+    add     w21, w20, #1                              // j = i + 1
 
-inner_loop:
-    cmp     x20, #8                         // if j >= 8
-    b.ge    next_i                          // go to next i
+inner_j:
+    cmp     w21, #SIZE                                // if j >= SIZE
+    b.ge    next_i
 
-    // --- load list[i] + list[j] ---
-    ldr     w0, [x21, x19, lsl #2]          // w0 = list[i]
-    ldr     w1, [x21, x20, lsl #2]          // w1 = list[j]
-    add     w0, w0, w1                      // w0 = list[i] + list[j]
+    // --- Load list[i] and list[j] ---
+    ldr     x2, =list
+    sxtw    x3, w20
+    ldr     w0, [x2, x3, lsl #2]                      // w0 = list[i]
+    sxtw    x4, w21
+    ldr     w1, [x2, x4, lsl #2]                      // w1 = list[j]
+    add     w0, w0, w1                                // w0 = list[i] + list[j]
 
-    // --- compare with target ---
-    ldr     w1, target                      // w1 = target
-    cmp     w0, w1                          // compare sum to target
-    b.ne    next_j                          // if not equal, continue inner loop
+    // --- Compare with target ---
+    ldr     w1, target                                // w1 = target
+    cmp     w0, w1
+    b.ne    not_equal
 
-    mov     x22, #1                         // found = 1
-    b       check_found                     // break out of both loops
+    mov     w24, #1                                   // found = 1
+    b       end_i_loop                                // break both loops
 
-next_j:
-    add     x20, x20, #1                    // j++
-    b       inner_loop                      // continue checking next pair
+not_equal:
+    add     w21, w21, #1                              // j++
+    b       inner_j                                   // continue inner loop
 
 next_i:
-    add     x19, x19, #1                    // i++
-    b       outer_loop                      // repeat outer loop
+    add     w20, w20, #1                              // i++
+    b       outer_i                                   // continue outer loop
+
+end_i_loop:
+    add     w19, w19, #1                              // r++
+    b       outer_repeat                              // repeat next run
 
 // ------------------------------------------------------------
-// Print results depending on 'found' flag
+// After all repetitions: measure end time
 // ------------------------------------------------------------
-check_found:
-    cbz     x22, not_found                  // if found == 0 → print "not found"
+done_repeats:
+    bl      now_ns
+    mov     x22, x0                                   // x22 = end_time
+    sub     x21, x22, x23                             // x21 = elapsed_ns
 
-    // --- print found message ---
-    ldr     x0, =msg_found                  // x0 = success message format
-    ldr     w1, target                      // w1 = target (printf arg)
+    // Compute average = elapsed / REPEAT
+    mov     x0, x21
+    mov     x1, #REPEAT
+    udiv    x2, x0, x1                                // x2 = avg_ns
+
+    // Load target for printing
+    ldr     w4, target
+
+// ------------------------------------------------------------
+// Print result message
+// ------------------------------------------------------------
+    cbz     w24, print_not                            // if found == 0 → not found
+    ldr     x0, =msg_found
+    mov     w1, w4
     bl      printf
-    b       done                            // skip "not found"
+    b       after_result
 
-not_found:
-    // --- print not found message ---
-    ldr     x0, =msg_not                    // x0 = failure message format
-    ldr     w1, target                      // w1 = target
+print_not:
+    ldr     x0, =msg_not
+    mov     w1, w4
     bl      printf
 
-// ------------------------------------------------------------
-// End of program (cleanup + return 0)
-// ------------------------------------------------------------
-done:
-    ldp     x21, x22, [sp], 16              // restore registers x21, x22
-    ldp     x19, x20, [sp], 16              // restore registers x19, x20
-    ldp     x29, x30, [sp], 16              // restore frame pointer + link register
-    mov     w0, #0                          // return 0
-    ret                                     // return to OS
+after_result:
+    // Print total time and average
+    ldr     x0, =msg_time
+    mov     x1, x21                                   // total ns
+    mov     w2, #REPEAT                               // repeat count
+    mov     x3, x2                                    // avg ns/run
+    bl      printf
+
+    // --- Return 0 ---
+    mov     w0, #0
+    ldp     x23, x24, [sp, 48]
+    ldp     x21, x22, [sp, 32]
+    ldp     x19, x20, [sp, 16]
+    ldp     x29, x30, [sp], 64
+    ret

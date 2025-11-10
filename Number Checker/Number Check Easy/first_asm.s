@@ -1,83 +1,135 @@
-.data
-list:.word 1,2,4,8,16,32,64,128        // Define a list of 8 integers
-size:.word 8                            // Store the size of the list (8)
-target:.word 0                          // Variable to hold user input target number
-found:.word 0                           // Flag to indicate if a pair is found (1 = found)
-prompt:.asciz "Enter a number to check: "  // Message prompt for user input
-fmt_in:.asciz "%d"                      // Format specifier for integer input
-msg_yes:.asciz "There are two numbers in the list summing to the keyed-in number %d\n"  // Message if a pair is found
-msg_no:.asciz "There are not two numbers in the list summing to the keyed-in number %d\n" // Message if no pair found
+// pair_sum_simple.s — Raspberry Pi AArch64 Assembly
+// Build:  gcc -O2 pair_sum_simple.s -o pair_sum_simple
+// Run:    ./pair_sum_simple
 
-.text
-.global main
-.extern printf
-.extern scanf
+        .section .rodata                  // Read-only data section (constants)
+list:       .word 1,2,4,8,16,32,64,128    // The 8 fixed integers
+msg_prompt: .asciz "Enter a number to check: "   // Prompt text
+fmt_d:      .asciz "%d"                  // Format for scanf/printf
+msg_yes:    .asciz "There are two numbers in the list summing to %d\n"
+msg_no:     .asciz "There are not two numbers in the list summing to %d\n"
+msg_time:   .asciz "Total ns: %llu   |   Avg ns: %llu\n"   // Timing results
+
+        .section .bss                    // Uninitialized memory
+target:     .space 4                     // Reserve 4 bytes for target integer
+
+        .text                            // Code section
+        .global main                     // Export symbol main
+        .extern printf, scanf, clock_gettime // Declare external functions
+
+        .equ REPEAT, 1000000             // Number of repetitions
+        .equ CLOCK_MONOTONIC, 1          // clock_gettime source constant
 
 main:
-sub sp,sp,#16                           // Create stack space (save return address)
-str x30,[sp]                            // Store link register (return address) on stack
+        stp x29, x30, [sp, -32]!         // Save frame pointer (x29) and return address (x30)
+        mov x29, sp                      // Set new frame pointer
 
-ldr x0,=prompt                          // Load the address of prompt message
-bl printf                               // Call printf to print "Enter a number to check: "
+        adrp x0, msg_prompt@PAGE         // Load page address of prompt string
+        add  x0, x0, msg_prompt@PAGEOFF  // Add offset to form full address
+        bl   printf                      // printf(prompt)
 
-ldr x0,=fmt_in                          // Load format string "%d" for scanf
-ldr x1,=target                          // Load address of target variable
-bl scanf                                // Call scanf to read user input into target
+        adrp x0, fmt_d@PAGE              // Load page of "%d"
+        add  x0, x0, fmt_d@PAGEOFF       // Add offset
+        adrp x1, target@PAGE             // Load page of target variable
+        add  x1, x1, target@PAGEOFF      // Add offset → &target
+        bl   scanf                       // scanf("%d", &target)
 
-ldr x2,=found                           // Load address of 'found' variable
-mov w3,#0                               // Initialize found = 0
-str w3,[x2]                             // Store found = 0 into memory
-mov x4,#0                               // Initialize i = 0 (outer loop counter)
+        mov  w0, #CLOCK_MONOTONIC        // w0 = CLOCK_MONOTONIC argument
+        sub  sp, sp, #32                 // Reserve 32 bytes for timespec storage
+        mov  x1, sp                      // x1 = &t0 storage
+        bl   clock_gettime               // clock_gettime(CLOCK_MONOTONIC, &t0)
 
-ldr x5,=size                            // Load address of 'size'
-ldr w16,[x5]                            // Load list size (8) into w16
-ldr x6,=list                            // Load address of the list array
-ldr x7,=target                          // Load address of target variable
-ldr w17,[x7]                            // Load target value into w17
+        mov  w19, #0                     // r = 0 (repeat counter)
 
-outer_loop:
-cmp x4,x16                              // Compare i with size (i < size?)
-bge end_outer                           // If i >= size, exit outer loop
-add x8,x4,#1                            // Set j = i + 1 (initialize inner loop counter)
+REPEAT_LOOP:
+        cmp  w19, #REPEAT                // Compare r with REPEAT
+        b.ge DONE_REPEAT                 // If r >= REPEAT → stop
 
-inner_loop:
-cmp x8,x16                              // Compare j with size (j < size?)
-bge next_i                              // If j >= size, exit inner loop
-lsl x9,x4,#2                            // Calculate offset i*4 (each word is 4 bytes)
-add x9,x6,x9                            // Compute address of list[i]
-ldr w10,[x9]                            // Load list[i] into w10
-lsl x11,x8,#2                           // Calculate offset j*4
-add x11,x6,x11                          // Compute address of list[j]
-ldr w12,[x11]                           // Load list[j] into w12
-add w13,w10,w12                         // w13 = list[i] + list[j]
-cmp w13,w17                             // Compare sum with target
-beq found_pair                          // If sum == target, jump to found_pair
-add x8,x8,#1                            // Increment j
-b inner_loop                            // Repeat inner loop
+        mov  w20, #0                     // found = 0
+        mov  w21, #0                     // i = 0
 
-next_i:
-add x4,x4,#1                            // Increment i
-b outer_loop                            // Repeat outer loop
+LOOP_I:
+        cmp  w21, #8                     // if i >= 8 → end
+        b.ge END_I_LOOP
+        add  w22, w21, #1                // j = i + 1
 
-found_pair:
-mov w3,#1                               // Set found = 1
-str w3,[x2]                             // Store found = 1 into memory
+LOOP_J:
+        cmp  w22, #8                     // if j >= 8 → next i
+        b.ge NEXT_I
 
-end_outer:
-ldr w14,[x2]                            // Load value of found
-cbz w14,print_no                        // If found == 0, jump to print_no
-ldr x0,=msg_yes                         // Load success message
-mov w1,w17                              // Move target value into w1 (printf argument)
-bl printf                               // Print success message
-b done                                  // Jump to done
+        adrp x23, list@PAGE              // Load base address of list (high bits)
+        add  x23, x23, list@PAGEOFF      // Add offset → x23 = &list
+        ldr  w0, [x23, w21, sxtw #2]     // w0 = list[i]
+        ldr  w1, [x23, w22, sxtw #2]     // w1 = list[j]
+        add  w0, w0, w1                  // w0 = list[i] + list[j]
 
-print_no:
-ldr x0,=msg_no                          // Load failure message
-mov w1,w17                              // Move target value into w1 (printf argument)
-bl printf                               // Print failure message
+        adrp x24, target@PAGE            // Load target address (page)
+        add  x24, x24, target@PAGEOFF    // Add offset → &target
+        ldr  w1, [x24]                   // w1 = target
+        cmp  w0, w1                      // Compare sum vs target
+        b.ne INC_J                       // If not equal → continue inner loop
 
-done:
-ldr x30,[sp]                            // Restore link register
-add sp,sp,#16                           // Free stack space
-mov w0,#0                               // Return value 0 (normal exit)
-ret                                     // Return to operating system
+        mov  w20, #1                     // found = 1
+        b    END_I_LOOP                  // Break out of both loops
+
+INC_J:
+        add  w22, w22, #1                // j++
+        b    LOOP_J                      // Repeat inner loop
+
+NEXT_I:
+        add  w21, w21, #1                // i++
+        b    LOOP_I                      // Repeat outer loop
+
+END_I_LOOP:
+        add  w19, w19, #1                // r++
+        b    REPEAT_LOOP                 // Repeat top loop
+
+DONE_REPEAT:
+        mov  w0, #CLOCK_MONOTONIC        // clock_gettime(CLOCK_MONOTONIC, &t1)
+        mov  x1, sp                      // Store into the same allocated memory
+        bl   clock_gettime
+
+        ldr x2, [sp]         // x2 = t0.sec
+        ldr x3, [sp, #8]     // x3 = t0.nsec
+        ldr x4, [sp, #16]    // x4 = t1.sec
+        ldr x5, [sp, #24]    // x5 = t1.nsec
+
+        sub x6, x4, x2       // (t1.sec - t0.sec)
+        mov x7, #1000000000  // constant 1e9
+        mul x6, x6, x7       // convert seconds to nanoseconds
+        sub x7, x5, x3       // (t1.nsec - t0.nsec)
+        add x6, x6, x7       // x6 = total_ns
+
+        mov x8, #REPEAT      // divisor for average
+        udiv x9, x6, x8      // x9 = avg_ns = total_ns / REPEAT
+
+        add sp, sp, #32      // Free stack space used for timing data
+
+        cbz w20, PRINT_NO    // If found == 0 → go print "not found"
+
+        adrp x0, msg_yes@PAGE
+        add  x0, x0, msg_yes@PAGEOFF
+        adrp x1, target@PAGE
+        add  x1, x1, target@PAGEOFF
+        ldr  w1, [x1]
+        bl   printf
+        b PRINT_TIME
+
+PRINT_NO:
+        adrp x0, msg_no@PAGE
+        add  x0, x0, msg_no@PAGEOFF
+        adrp x1, target@PAGE
+        add  x1, x1, target@PAGEOFF
+        ldr  w1, [x1]
+        bl   printf
+
+PRINT_TIME:
+        adrp x0, msg_time@PAGE
+        add  x0, x0, msg_time@PAGEOFF
+        mov  x1, x6         // x1 = total_ns
+        mov  x2, x9         // x2 = avg_ns
+        bl   printf         // print timing info
+
+        ldp x29, x30, [sp], 32   // Restore frame pointer + return address
+        mov w0, #0               // return 0
+        ret                      // return to OS

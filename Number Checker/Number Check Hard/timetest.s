@@ -1,184 +1,157 @@
+// two_sum_pure.s — ARM64 Assembly (Raspberry Pi x64, pure assembly version)
+// Measure total and average execution time without using any C helper.
+// Build: gcc two_sum_pure.s -o two_sum_pure
+// Run:   ./two_sum_pure
+
     .section .rodata
-prompt1:    .asciz "Enter 8 numbers:\n"
-prompt2:    .asciz "Enter number %d: "
 prompt3:    .asciz "Enter a number to check: "
 fmt_d:      .asciz "%d"
 msg_found:  .asciz "There are two numbers in the list summing to the keyed-in number %d\n"
 msg_not:    .asciz "There are not two numbers in the list summing to the keyed-in number %d\n"
-msg_inv:    .asciz "Invalid input! Please enter an integer.\n"
-msg_time:   .asciz "Total: %llu ns for %d repeats (avg %llu ns)\n"
+msg_time:   .asciz "\nTotal: %llu ns for %d repetitions (avg %llu ns)\n"
+
+    .align 4
+list:       .word 1, 2, 4, 8, 16, 32, 64, 128          // fixed list of integers
 
     .section .bss
     .align 4
-list:       .space 32            // 8 * 4B
-target:     .space 4
+target:     .space 4                                   // space for target integer
 
     .text
     .global main
     .extern printf
     .extern scanf
-    .extern getchar
-    .extern now_ns               // uint64_t now_ns(void)
+    .extern clock_gettime                              // from libc
 
-    .equ REPEAT, 1000000
+// ------------------------------------------------------------
+// Constant values (assembler-level)
+// ------------------------------------------------------------
+SIZE    = 8
+REPEAT  = 1000000
+CLOCK_MONOTONIC_RAW = 4
 
+// ------------------------------------------------------------
+// Helper: get time in nanoseconds → returns x0 = ns (uint64_t)
+// ------------------------------------------------------------
+get_time_ns:
+    sub     sp, sp, #16               // allocate space for struct timespec (16 B)
+    mov     w0, #CLOCK_MONOTONIC_RAW  // clock id = 4 (CLOCK_MONOTONIC_RAW)
+    mov     x1, sp                    // pointer to struct timespec
+    bl      clock_gettime             // call libc clock_gettime()
+    ldr     x2, [sp]                  // tv_sec  (first 8 bytes)
+    ldr     x3, [sp, 8]               // tv_nsec (next 8 bytes)
+    mov     x4, #1000000000
+    mul     x0, x2, x4                // sec * 1e9
+    add     x0, x0, x3                // + nanoseconds
+    add     sp, sp, #16               // restore stack
+    ret
+
+// ------------------------------------------------------------
+// main() — repeated two-sum test + timing
+// ------------------------------------------------------------
 main:
-    // prologue
-    stp     x29, x30, [sp, -16]!
+    // --- Prologue ---
+    stp     x29, x30, [sp, -64]!
     mov     x29, sp
-    stp     x19, x20, [sp, -16]!
-    stp     x21, x22, [sp, -16]!
-    stp     x23, x24, [sp, -16]!     // will hold start_ns, total_ns
-    stp     x25, x26, [sp, -16]!     // loop/repeat temps
+    stp     x19, x20, [sp, 16]
+    stp     x21, x22, [sp, 32]
+    stp     x23, x24, [sp, 48]
 
-    // prompt "Enter 8 numbers:"
-    ldr     x0, =prompt1
-    bl      printf
-
-    mov     x19, #0                  // i = 0
-    ldr     x21, =list               // base of list
-
-// ---- read 8 ints with validation
-read_loop:
-    cmp     x19, #8
-    b.ge    read_done
-
-read_one:
-    ldr     x0, =prompt2
-    add     x1, x19, #1
-    bl      printf
-
-    ldr     x0, =fmt_d
-    add     x1, x21, x19, lsl #2     // &list[i]
-    bl      scanf
-
-    cmp     w0, #1
-    beq     read_ok
-
-    ldr     x0, =msg_inv
-    bl      printf
-clear_buf:
-    bl      getchar
-    cmp     w0, #10
-    b.ne    clear_buf
-    b       read_one
-
-read_ok:
-    add     x19, x19, #1
-    b       read_loop
-
-// ---- read target with validation
-read_done:
-read_target:
+    // --- Prompt user for target ---
     ldr     x0, =prompt3
     bl      printf
 
+    // --- Read target integer ---
     ldr     x0, =fmt_d
     ldr     x1, =target
     bl      scanf
-    cmp     w0, #1
-    beq     have_target
 
-    ldr     x0, =msg_inv
-    bl      printf
-clr_tgt:
-    bl      getchar
-    cmp     w0, #10
-    b.ne    clr_tgt
-    b       read_target
+    // --- Get start time ---
+    bl      get_time_ns
+    mov     x23, x0                   // x23 = start_time
 
-// ---- pair-sum check once (for correctness message)
-have_target:
-    mov     x22, #0                  // found = 0
-    mov     x19, #0                  // i = 0
-outer_loop:
-    cmp     x19, #8
-    b.ge    print_result
-    add     x20, x19, #1             // j = i+1
-inner_loop:
-    cmp     x20, #8
+    // --- Outer repeat loop ---
+    mov     w19, #0                   // r = 0
+
+outer_repeat:
+    cmp     w19, #REPEAT
+    b.ge    done_repeats
+
+    mov     w24, #0                   // found = 0
+    mov     w20, #0                   // i = 0
+
+outer_i:
+    cmp     w20, #SIZE
+    b.ge    end_i_loop
+    add     w21, w20, #1              // j = i + 1
+
+inner_j:
+    cmp     w21, #SIZE
     b.ge    next_i
-    ldr     w0, [x21, x19, lsl #2]   // list[i]
-    ldr     w1, [x21, x20, lsl #2]   // list[j]
-    add     w0, w0, w1
+    ldr     x2, =list
+    sxtw    x3, w20
+    ldr     w0, [x2, x3, lsl #2]      // w0 = list[i]
+    sxtw    x4, w21
+    ldr     w1, [x2, x4, lsl #2]      // w1 = list[j]
+    add     w0, w0, w1                // w0 = list[i] + list[j]
     ldr     w1, target
     cmp     w0, w1
-    b.ne    next_j
-    mov     x22, #1
-    b       print_result
-next_j:
-    add     x20, x20, #1
-    b       inner_loop
+    b.ne    not_equal
+    mov     w24, #1
+    b       end_i_loop
+
+not_equal:
+    add     w21, w21, #1
+    b       inner_j
+
 next_i:
-    add     x19, x19, #1
-    b       outer_loop
+    add     w20, w20, #1
+    b       outer_i
 
-// ---- print result
-print_result:
-    cbz     x22, not_found
+end_i_loop:
+    add     w19, w19, #1
+    b       outer_repeat
+
+// ------------------------------------------------------------
+// Done — measure end time and print results
+// ------------------------------------------------------------
+done_repeats:
+    bl      get_time_ns
+    mov     x22, x0                   // end_time
+    sub     x21, x22, x23             // elapsed_ns = end - start
+
+    // average_ns = elapsed / REPEAT
+    mov     x0, x21
+    mov     x1, #REPEAT
+    udiv    x2, x0, x1                // x2 = average
+
+    // Load target value
+    ldr     w4, target
+
+    // Print result messages
+    cbz     w24, print_not
     ldr     x0, =msg_found
-    ldr     w1, target
+    mov     w1, w4
     bl      printf
-    b       do_timing
-not_found:
+    b       after_result
+
+print_not:
     ldr     x0, =msg_not
-    ldr     w1, target
+    mov     w1, w4
     bl      printf
 
-// ---- timing: repeat the pair-check REPEAT times
-do_timing:
-    bl      now_ns                   // start
-    mov     x23, x0                  // start_ns = x0
-
-    mov     x25, #REPEAT             // repeat counter
-time_outer_repeat:
-    // found = 0; i = 0;
-    mov     x22, #0
-    mov     x19, #0
-time_outer_i:
-    cmp     x19, #8
-    b.ge    time_chk_done
-    add     x20, x19, #1
-time_inner_j:
-    cmp     x20, #8
-    b.ge    time_next_i
-    ldr     w0, [x21, x19, lsl #2]
-    ldr     w1, [x21, x20, lsl #2]
-    add     w0, w0, w1
-    ldr     w1, target
-    cmp     w0, w1
-    b.ne    time_next_j
-    mov     x22, #1
-    b       time_chk_done
-time_next_j:
-    add     x20, x20, #1
-    b       time_inner_j
-time_next_i:
-    add     x19, x19, #1
-    b       time_outer_i
-time_chk_done:
-    subs    x25, x25, #1
-    b.ne    time_outer_repeat
-
-    bl      now_ns                   // end
-    sub     x24, x0, x23            // total_ns = end - start
-
-    // avg = total_ns / REPEAT
-    mov     x2, #REPEAT
-    udiv    x3, x24, x2             // x3 = avg_ns (integer)
-
-    // printf("Total: %llu ns for %d repeats (avg %llu ns)\n", total_ns, REPEAT, avg_ns)
+after_result:
+    // Print timing info
     ldr     x0, =msg_time
-    mov     x1, x24                  // total_ns (unsigned long long)
-    mov     w2, #REPEAT              // repeats (int)
-    mov     x3, x3                   // avg_ns
+    mov     x1, x21                   // total ns
+    mov     w2, #REPEAT
+    mov     x3, x2                    // avg ns
     bl      printf
 
-    // epilogue
-    ldp     x25, x26, [sp], 16
-    ldp     x23, x24, [sp], 16
-    ldp     x21, x22, [sp], 16
-    ldp     x19, x20, [sp], 16
-    ldp     x29, x30, [sp], 16
+    // --- Return 0 ---
     mov     w0, #0
+    ldp     x23, x24, [sp, 48]
+    ldp     x21, x22, [sp, 32]
+    ldp     x19, x20, [sp, 16]
+    ldp     x29, x30, [sp], 64
     ret
