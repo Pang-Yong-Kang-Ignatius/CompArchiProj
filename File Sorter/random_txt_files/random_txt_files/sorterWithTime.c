@@ -1,4 +1,4 @@
-// zip_many_txt_list_timer.c
+// zip_many_txt_list_timer_seconds.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,11 +38,10 @@ int main() {
 
 #ifdef _WIN32
     // Windows (uses built-in tar to produce .zip)
-    // -a = auto-select format (.zip), -c = create, -f = filename, -T = read list
     snprintf(command, sizeof(command),
              "tar -a -c -f \"%s.zip\" -T files_to_zip.txt", zip_name);
 #else
-    // Linux/macOS: zip reads file list using stdin with -@
+    // Linux/macOS (zip reads list from stdin)
     snprintf(command, sizeof(command),
              "zip -q \"%s.zip\" -@ < files_to_zip.txt", zip_name);
 #endif
@@ -58,10 +57,11 @@ int main() {
         return 1;
     }
 
-    double elapsed_ms = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC;
+    // Convert to seconds (previously ms)
+    double elapsed_seconds = (double)(end - start) / CLOCKS_PER_SEC;
 
     printf("Zipped %d .txt files into %s.zip\n", count, zip_name);
-    printf("Execution time: %.2f ms\n", elapsed_ms);
+    printf("Execution time: %.4f seconds\n", elapsed_seconds);
 
     return 0;
 }
