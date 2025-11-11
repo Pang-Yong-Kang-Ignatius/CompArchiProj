@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 // binary1 for virtual memory page number
 // binary for virtual page offset
@@ -10,7 +11,9 @@ int main() {
     int Process_A[32] = {9, 1, 14, 10, -1, 13, 8, 15, -1, 30, 18, -1, 21, 27, -1, 22, 29, -1, 19, 26, 17, 25, -1, 31, 20, 0, 5, 4, -1, -1, 3, 2};
     // -1 represents "Frame number not found for this page"
 
-    char binary1[5], binary2[8]; // buffers for input
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    char binary1[6], binary2[9]; // buffers for input
     int decimal1, decimal2;
 
     printf("========================================= Convert Virtual Address to Physical Address =========================================\n");
@@ -22,7 +25,7 @@ int main() {
 
         // Check if only 0 or 1
         int valid = 1;
-        if (strlen(binary1) != 5 && strspn(binary1, "01") !=5) {
+        if (strlen(binary1) != 5 || strspn(binary1, "01") !=5) {
             valid = 0;
         } 
 
@@ -46,11 +49,8 @@ int main() {
 
         // Check if only 0 or 1
         int valid = 1;
-        for (int i = 0; i < strlen(binary2); i++) {
-            if (binary2[i] != '0' && binary2[i] != '1') {
-                valid = 0;
-                break;
-            }
+        if (strlen(binary2) != 8 || strspn(binary2, "01") != 8) {
+            valid = 0;
         }
 
         if (!valid) {
@@ -65,7 +65,7 @@ int main() {
             printf("Input a valid binary that is less than or equals to 255.\n");
         }
     }
-
+    gettimeofday(&start, NULL);
     // Format page offset to 8-bit binary
     char offset_binary[9];
     for (int i = 7; i >= 0; i--) {
@@ -86,6 +86,7 @@ int main() {
     grouped_offset[8] = offset_binary[7];
     grouped_offset[9] = '\0';
 
+
     printf("========================================================== Results ============================================================\n");
 
     // Virtual page number binary (5 bits)
@@ -96,6 +97,8 @@ int main() {
     virtual_binary[5] = '\0';
 
     int frame_no = Process_A[decimal1];
+
+    gettimeofday(&end, NULL);
 
     printf("The virtual memory address you keyed in is: %s %s\n", virtual_binary, grouped_offset);
 
@@ -111,6 +114,9 @@ int main() {
 
         printf("The physical memory address to be accessed after paging is: %s %s\n", frame_binary, grouped_offset);
     }
+    double time_taken = (end.tv_sec - start.tv_sec) * 1e6;
+    time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
+    printf("Execution time: %.9f seconds\n", time_taken);
 
     return 0;
 }
