@@ -22,7 +22,12 @@ elif zip_name.lower().endswith(".zip"):
 zip_path = os.path.join(current_dir, zip_name + ".zip")
 
 # Find all .txt files in current directory
-txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith(".txt") and os.path.isfile(f)]
+txt_files = [
+    f for f in os.listdir(current_dir)
+    if f.lower().endswith(".txt") and os.path.isfile(os.path.join(current_dir, f))
+]
+
+
 count = len(txt_files)
 
 # Compress if there are .txt files

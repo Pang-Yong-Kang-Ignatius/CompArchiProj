@@ -21,7 +21,10 @@ elif zip_name.lower().endswith(".zip"):
 zip_path = os.path.join(current_dir, zip_name + ".zip")
 
 # Find all .txt files in the directory
-txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith(".txt") and os.path.isfile(f)]
+txt_files = [
+    f for f in os.listdir(current_dir)
+    if f.lower().endswith(".txt") and os.path.isfile(os.path.join(current_dir, f))
+]
 count = len(txt_files)
 
 # Compress if files exist
@@ -30,7 +33,6 @@ if count > 0:
         for f in txt_files:
             zipf.write(f, arcname=os.path.basename(f))
 
-    # ✅ Final output (same tone as your C version)
     print(f"There are number of {count} .txt files and compressed into a .zip file")
     print(f"Created zip file path: {zip_path}")
 else:

@@ -1,67 +1,56 @@
-// zip_many_txt_list_timer.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
-#include <time.h>
+#include <time.h>   // for timing
 
 int main() {
-    DIR *d = opendir(".");
-    if (!d) { printf("Cannot open directory.\n"); return 1; }
-
-    char zip_name[128];
-    printf("Enter zip name (without .zip): ");
-    scanf("%127s", zip_name);
-
-    FILE *listfile = fopen("files_to_zip.txt", "w");
-    if (!listfile) { printf("Failed to create list file.\n"); return 1; }
-
+    DIR *folder;
+    struct dirent *entry;
+    char zip_name[100];
+    char command[1024] = "zip ";
     int count = 0;
-    struct dirent *e;
-    while ((e = readdir(d))) {
-        char *dot = strrchr(e->d_name, '.');
-        if (dot && strcmp(dot, ".txt") == 0) {
-            fprintf(listfile, "%s\n", e->d_name);
-            count++;
-        }
-    }
-    closedir(d);
-    fclose(listfile);
 
-    if (count == 0) {
-        remove("files_to_zip.txt");
-        printf("No .txt files found.\n");
-        return 0;
+    printf("Enter a name for your zip file (without .zip): ");
+    scanf("%99s", zip_name);
+
+    if (strstr(zip_name, ".zip") != 0) {
+        zip_name[strlen(zip_name) - 4] = '\0';
+        printf("You included '.zip', it will be removed.\n");
     }
 
-    char command[512];
+    strcat(command, zip_name);
+    strcat(command, ".zip");
 
-#ifdef _WIN32
-    // Windows (uses built-in tar to produce .zip)
-    // -a = auto-select format (.zip), -c = create, -f = filename, -T = read list
-    snprintf(command, sizeof(command),
-             "tar -a -c -f \"%s.zip\" -T files_to_zip.txt", zip_name);
-#else
-    // Linux/macOS: zip reads file list using stdin with -@
-    snprintf(command, sizeof(command),
-             "zip -q \"%s.zip\" -@ < files_to_zip.txt", zip_name);
-#endif
-
-    clock_t start = clock();
-    int rc = system(command);
-    clock_t end = clock();
-
-    remove("files_to_zip.txt");
-
-    if (rc != 0) {
-        printf("Compression failed (exit code %d)\n", rc);
+    folder = opendir(".");
+    if (folder == 0) {
+        printf("Could not open current directory.\n");
         return 1;
     }
 
-    double elapsed_ms = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC;
+    while ((entry = readdir(folder)) != 0) {
+        char *ext = strrchr(entry->d_name, '.');
+        if (ext && strcmp(ext, ".txt") == 0) {
+            strcat(command, " ");
+            strcat(command, entry->d_name);
+            count++;
+        }
+    }
+    closedir(folder);
 
-    printf("Zipped %d .txt files into %s.zip\n", count, zip_name);
-    printf("Execution time: %.2f ms\n", elapsed_ms);
+    if (count > 0) {
+        clock_t start_time = clock();    // Start timing before zipping
+        system(command);                 // Run the zip command
+        clock_t end_time = clock();      // End timing after zipping
+        double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+        // ✅ Final output
+        printf("There are number of %d .txt files and compressed into a .zip file\n", count);
+        printf("Created zip file path: ./%s.zip\n", zip_name);
+        printf("Zipping execution time: %.6f seconds\n", elapsed_time);
+    } else {
+        printf("No .txt files found in this folder.\n");
+    }
 
     return 0;
 }
