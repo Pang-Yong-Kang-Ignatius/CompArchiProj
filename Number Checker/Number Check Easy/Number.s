@@ -1,61 +1,139 @@
-// -------------------------------------------------------------
-// CSC1104 - Number Checker with Execution Time (AArch64)       // file header
-// Author : [Your Name]                                         // author tag (replace if needed)
-// Purpose: Check if any two numbers in a fixed list sum to     // brief description
-//          user input and time the computation using now_ns(). // timing description
-// References: Lecture 6 (Assembly), Lecture 8 (Instruction Set)// citation note
-// -------------------------------------------------------------
+    .section .rodata
+prompt3:    .asciz "Enter a number to check: "                      // target prompt
+fmt_d:      .asciz "%d"                                             // scanf integer format
+msg_found:  .asciz "There are two numbers in the list summing to the keyed-in number %d\n"
+msg_not:    .asciz "There are not two numbers in the list summing to the keyed-in number %d\n"
+msg_time:   .asciz "\nTotal: %llu ns for %d repetitions (avg %llu ns)\n"
 
-.data                                                          // start data section (variables & strings live here)
-list:       .word 1,2,4,8,16,32,64,128                         // 8-element int array (4 bytes each)
-size:       .word 8                                            // constant: number of elements in list
-target:     .word 0                                            // storage for user-entered target sum
-found:      .word 0                                            // flag set to 1 when a pair is found
+    .align 4
+list:       .word 1, 2, 4, 8, 16, 32, 64, 128                       // fixed list[8]
 
-REPEAT:     .word 1000000                                      // repeat count for timing loop
+    .section .bss
+    .align 4
+target:     .space 4                                                // int target
 
-prompt:     .asciz "Enter a number to check: "                 // input prompt string (null-terminated)
-fmt:        .asciz "%d"                                        // scanf/printf integer format
-msg_yes:    .asciz "There are two numbers in the list summing to the keyed-in number %d\n" // success message
-msg_no:     .asciz "There are not two numbers in the list summing to the keyed-in number %d\n" // failure message
-msg_time:   .asciz "Total: %llu ns for %d repeats (avg %llu ns)\n" // timing report message
+    .text
+    .global main
+    .extern printf
+    .extern scanf
+    .extern now_ns                                                  // uint64_t now_ns(void)
 
-.text                                                          // start code section
-.global main                                                   // export main symbol to linker
-.extern printf                                                 // declare external printf
-.extern scanf                                                  // declare external scanf
-.extern now_ns                                                 // declare external now_ns: uint64_t now_ns(void)
+    .equ SIZE,   8                                                  // list size
+    .equ REPEAT, 1000000                                            // repetition count
 
-main:                                                          // program entry
-    SUB sp, sp, #32                                            // make 32 bytes stack space for frame
-    STP x29, x30, [sp, #16]                                    // save frame pointer (x29) and return address (x30)
-    MOV x29, sp                                                // set new frame pointer
+// ------------------------------------------------------------
+// main() — read target, time REPEAT runs of pair-sum check
+// ------------------------------------------------------------
+main:
+    // --- prologue ---
+    stp     x29, x30, [sp, -64]!                                    // push FP/LR, make room
+    mov     x29, sp                                                 // set frame pointer
+    stp     x19, x20, [sp, 16]                                      // save x19-x20
+    stp     x21, x22, [sp, 32]                                      // save x21-x22
+    stp     x23, x24, [sp, 48]                                      // save x23-x24
 
-    LDR x0, =prompt                                            // x0 = address of prompt string (printf arg#1)
-    BL printf                                                  // print prompt
-    LDR x0, =fmt                                               // x0 = "%d" format (scanf arg#1)
-    LDR x1, =target                                            // x1 = &target (scanf arg#2)
-    BL scanf                                                   // read integer into target
+    // --- print prompt for target ---
+    ldr     x0, =prompt3                                            // x0 = "Enter a number to check: "
+    bl      printf                                                  // printf(prompt3)
 
-    LDR x19, =list                                             // x19 = base address of list (callee-saved)
-    LDR x20, =size                                             // x20 = address of size
-    LDR w21, [x20]                                             // w21 = size (8)
-    LDR x22, =target                                           // x22 = address of target
-    LDR w23, [x22]                                             // w23 = target value (zero-extended to 64-bit on use)
-    LDR x24, =found                                            // x24 = address of found
-    MOV w25, #0                                                // w25 = 0
-    STR w25, [x24]                                             // found = 0
+    // --- read target once ---
+    ldr     x0, =fmt_d                                              // x0 = "%d"
+    ldr     x1, =target                                             // x1 = &target
+    bl      scanf                                                   // scanf("%d", &target)
 
-    LDR x26, =REPEAT                                           // x26 = address of REPEAT
-    LDR w27, [x26]                                             // w27 = REPEAT count (1,000,000)
+    // --- start_time = now_ns() ---
+    bl      now_ns                                                  // x0 = start ns
+    mov     x23, x0                                                 // x23 = start_time
 
-    BL now_ns                                                  // call timer to get start time
-    MOV x9, x0                                                 // x9 = start time (ns)
+    // --- for (r = 0; r < REPEAT; ++r) ---
+    mov     w19, #0                                                 // w19 = r = 0
 
-repeat_loop:                                                   // top of outer repeat loop
-    SUBS w27, w27, #1                                          // w27 = w27 - 1, update flags
-    BMI end_repeat                                             // if went negative (past 0), exit repeat loop
+outer_repeat:
+    cmp     w19, #REPEAT                                            // r >= REPEAT ?
+    b.ge    done_repeats                                            // yes -> exit loop
 
-    MOV w0, #0                                                 // w0 = 0
-    STR w0, [x24]                                              // found = 0 (reset each repetition)
-    MOV w1, #0
+    mov     w24, #0                                                 // found = 0 for this repetition
+    mov     w20, #0                                                 // i = 0
+
+// ------------------------------------------------------------
+// nested loops over pairs (i, j) with j = i+1..SIZE-1
+// ------------------------------------------------------------
+outer_i:
+    cmp     w20, #SIZE                                              // i >= SIZE ?
+    b.ge    end_i_loop                                              // yes -> end i-loop
+
+    add     w21, w20, #1                                            // j = i + 1
+
+inner_j:
+    cmp     w21, #SIZE                                              // j >= SIZE ?
+    b.ge    next_i                                                  // yes -> next i
+
+    // --- load list[i] and list[j] ---
+    ldr     x2, =list                                               // x2 = &list[0]
+    sxtw    x3, w20                                                 // x3 = (int64)i
+    ldr     w0, [x2, x3, lsl #2]                                    // w0 = list[i]
+    sxtw    x4, w21                                                 // x4 = (int64)j
+    ldr     w1, [x2, x4, lsl #2]                                    // w1 = list[j]
+    add     w0, w0, w1                                              // w0 = list[i] + list[j]
+
+    // --- compare with target ---
+    ldr     w1, target                                              // w1 = target
+    cmp     w0, w1                                                  // sum == target ?
+    b.ne    not_equal                                               // no -> advance j
+
+    mov     w24, #1                                                 // found = 1
+    b       end_i_loop                                              // break both loops
+
+not_equal:
+    add     w21, w21, #1                                            // j++
+    b       inner_j                                                 // continue inner loop
+
+next_i:
+    add     w20, w20, #1                                            // i++
+    b       outer_i                                                 // continue outer loop
+
+end_i_loop:
+    add     w19, w19, #1                                            // r++
+    b       outer_repeat                                            // next repetition
+
+done_repeats:
+    // --- end_time = now_ns(); elapsed = end - start ---
+    bl      now_ns                                                  // x0 = end ns
+    mov     x22, x0                                                 // x22 = end_time
+    sub     x21, x22, x23                                           // x21 = elapsed_ns
+
+    // --- avg = elapsed / REPEAT (integer, ns per run) ---
+    mov     x0, x21                                                 // x0 = elapsed
+    mov     x1, #REPEAT                                             // x1 = REPEAT
+    udiv    x2, x0, x1                                              // x2 = avg_ns
+
+    // --- load target for messages ---
+    ldr     w4, target                                              // w4 = target
+
+    // --- print result message (based on last repetition's 'found') ---
+    cbz     w24, print_not                                          // if found == 0 -> not found
+    ldr     x0, =msg_found                                          // x0 = msg_found fmt
+    mov     w1, w4                                                  // x1 = target
+    bl      printf                                                  // print "found"
+    b       after_result
+
+print_not:
+    ldr     x0, =msg_not                                            // x0 = msg_not fmt
+    mov     w1, w4                                                  // x1 = target
+    bl      printf                                                  // print "not found"
+
+after_result:
+    // --- print timing: total, repeats, average ---
+    ldr     x0, =msg_time                                           // x0 = timing fmt
+    mov     x1, x21                                                 // x1 = total elapsed ns (unsigned long long)
+    mov     w2, #REPEAT                                             // x2 = repetitions (int)
+    mov     x3, x2                                                  // x3 = average ns/run (unsigned long long) — in x2 from udiv above
+    bl      printf                                                  // print timing line
+
+    // --- epilogue / return 0 ---
+    mov     w0, #0                                                  // return code = 0
+    ldp     x23, x24, [sp, 48]                                      // restore x23-x24
+    ldp     x21, x22, [sp, 32]                                      // restore x21-x22
+    ldp     x19, x20, [sp, 16]                                      // restore x19-x20
+    ldp     x29, x30, [sp], 64                                      // restore FP/LR and deallocate
+    ret                                                             // return
