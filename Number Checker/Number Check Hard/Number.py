@@ -1,5 +1,3 @@
-import time  # Import time module to measure execution time
-
 # Ask user to enter 8 valid integers
 numbers = []  # List to store the user's numbers
 i = 0  # Counter to track the number of inputs
@@ -21,35 +19,18 @@ while True:  # Repeat until a valid integer is entered for the target
         print("Invalid input! Please enter an integer.")  # Inform user if input is invalid
 
 found = False  # Variable to track if a pair is found
-REPEAT = 1_000_000  # Repeat the process 1 million times for accurate timing
 
-# ✅ Start timing only for the checking process
-start_time = time.perf_counter()  # Record the start time for the check process
-
-# Perform the pair-checking process REPEAT times
-for _ in range(REPEAT):
-    found = False  # Reset the found flag for each repetition
-    for i in range(len(numbers)):  # Loop over the first number in the list
-        for j in range(i + 1, len(numbers)):  # Loop over the second number in the list (after the first)
-            if numbers[i] + numbers[j] == target:  
-                found = True  
-                break  
-        if found:  
+# Perform the pair-checking process once
+for i in range(len(numbers)):  # Loop over the first number in the list
+    for j in range(i + 1, len(numbers)):  # Loop over the second number in the list (after the first)
+        if numbers[i] + numbers[j] == target:
+            found = True
             break
-
-# ✅ Stop timing
-end_time = time.perf_counter()  # Record the end time for the check process
-
-# Calculate total and average execution times
-elapsed_time = end_time - start_time  # Total time for REPEAT iterations
-avg_time = elapsed_time / REPEAT  # Average time per repetition
+    if found:
+        break
 
 # Print the result of the Two Number Sum Check
 if found:
     print(f"There are two numbers in the list summing to the keyed-in number: {target}")
 else:
     print(f"There are not two numbers in the list summing to the keyed-in number: {target}")
-
-# Print execution time statistics
-print(f"\nTotal execution time for {REPEAT:,} repetitions: {elapsed_time:.6f} seconds")
-print(f"Average execution time per run: {avg_time:.9f} seconds")
