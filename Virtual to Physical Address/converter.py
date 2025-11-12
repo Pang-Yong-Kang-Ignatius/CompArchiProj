@@ -1,5 +1,3 @@
-import time
-
 #array list for page table
 Process_A = [ 
     9,      # Page 0
@@ -61,7 +59,6 @@ while True:
     else:
         print("Please enter a valid binary number (only 0s and 1s allowed).\n")
 
-start_time = time.perf_counter()
 binary2 = format(decimal2, '08b') #converts decimal to binary
 grouped_binary2 = binary2[:4] + ' ' + binary2[4:] 
 
@@ -71,13 +68,9 @@ pageno = decimal1
 pagenoint = int(pageno)
 virtual_memory_binary = format(pagenoint, '05b')
 frame_no = Process_A[pagenoint]
-end_time = time.perf_counter()
-execution_time = end_time - start_time
 print("The virtual memory address you keyed in is: ", virtual_memory_binary, grouped_binary2)
 if frame_no == -1:
     print("Frame number not found for this page")
 else:
     frame_no_to_binary = format(frame_no,'05b')
     print("The physical memory address to be accessed after paging is:",frame_no_to_binary , grouped_binary2)
-
-print(f"Execution time: {execution_time} seconds")
