@@ -1,5 +1,4 @@
-
-        .text
+.text
         .global main
 
 main:
@@ -62,6 +61,10 @@ input_loop:
         b       input_loop
 
 input_done:
+        // Start timing: call clock()
+        bl      clock
+        str     x0, [sp, #-16]!         // Save start_time on stack
+
         // Compute: total_cycles = Σ(count[i] * cpi[i])
         fmov    d2, xzr                 // total_cycles = 0.0
         mov     w19, 0                  // i = 0
@@ -93,9 +96,31 @@ calc_done:
         ldr     x9, =clock_time
         ldr     d0, [x9]                // d0 = clock_time
         fmul    d0, d0, d2              // d0 = exec_time
+        str     d0, [sp, #-16]!         // Save exec_time on stack
+
+        // End timing: call clock()
+        bl      clock
+        mov     x22, x0                 // x22 = end_time
+
+        // Calculate elapsed time: (end_time - start_time) / CLOCKS_PER_SEC
+        ldr     x21, [sp, #16]          // Load start_time from stack
+        sub     x23, x22, x21           // x23 = end_time - start_time
+        scvtf   d3, x23                 // Convert to double
+        ldr     x9, =clocks_per_sec
+        ldr     d4, [x9]                // d4 = CLOCKS_PER_SEC
+        fdiv    d3, d3, d4              // d3 = elapsed_time in seconds
+
+        // Retrieve exec_time from stack
+        ldr     d0, [sp], 16            // Pop exec_time
+        add     sp, sp, 16              // Pop start_time
 
         // printf("The execution time ... %.6f second.\n", exec_time)
         ldr     x0, =out_fmt
+        bl      printf
+
+        // printf("\nActual execution time for calculation: %.9f seconds\n", elapsed_time)
+        ldr     x0, =time_fmt
+        fmov    d0, d3                  // Move elapsed_time to d0
         bl      printf
 
         // return 0
@@ -110,11 +135,13 @@ calc_done:
 clock_time:     .double 0.0
 count:          .quad   0, 0, 0, 0      // Array of 4 long long values
 cpi:            .double 0.0, 0.0, 0.0, 0.0  // Array of 4 double values
+clocks_per_sec: .double 1000000.0       // CLOCKS_PER_SEC (typically 1000000)
 
 // Formats
 fmt_double:     .asciz "%lf"
 fmt_ll:         .asciz "%lld"
 out_fmt:        .asciz "\nThe execution time of this software program is %.6f second.\n"
+time_fmt:       .asciz "\nActual execution time for calculation: %.9f seconds\n"
 
 // Dynamic prompts using printf format strings
 prompt_clk:     .asciz "1) The value of clock cycle time (in second): "

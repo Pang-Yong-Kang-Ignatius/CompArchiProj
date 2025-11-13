@@ -1,6 +1,8 @@
 # Program to calculate the execution time of a software program
 # Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
 
+import time  # For measuring execution time
+
 MAX_TYPES = 10  # Maximum number of instruction types allowed
 
 
@@ -69,13 +71,25 @@ def main():
             except ValueError:
                 print("   Invalid. Please enter a positive number.")
 
+    # Start timing the calculation
+    start_time = time.time()
+    
     # Calculate execution time using the function
     exec_time = calculate_exec_time(t_clk, count, cpi, num_types)
+    
+    # End timing the calculation
+    end_time = time.time()
+    
+    # Calculate elapsed time
+    elapsed_time = end_time - start_time
 
     # Output result
     print("\n-------------------------------------------")
     print(f"The execution time of this program is {exec_time:.6f} seconds.")
     print("-------------------------------------------")
+    
+    # Print actual runtime of the calculation
+    print(f"\nActual execution time for calculation: {elapsed_time:.9f} seconds")
 
 
 if __name__ == "__main__":

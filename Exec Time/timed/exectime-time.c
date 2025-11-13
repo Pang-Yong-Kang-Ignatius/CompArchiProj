@@ -1,6 +1,7 @@
 // Program to calculate the execution time of a software program
 // Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
 #include <stdio.h>
+#include <time.h>   // for clock()
 
 #define MAX_TYPES 10  // Maximum number of instruction types allowed
 
@@ -73,13 +74,25 @@ int main(void) {
         }
     }
 
+    // Start timing the calculation
+    clock_t start_time = clock();
+    
     // Calculate execution time using the function
     exec_time = calculate_exec_time(t_clk, count, cpi, num_types);
+    
+    // End timing the calculation
+    clock_t end_time = clock();
+    
+    // Calculate elapsed time
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     // Output result
     printf("\n-------------------------------------------\n");
     printf("The execution time of this program is %.6f seconds.\n", exec_time);
     printf("-------------------------------------------\n");
+    
+    // Print actual runtime of the calculation
+    printf("\nActual execution time for calculation: %.9f seconds\n", elapsed_time);
 
     return 0;
 }

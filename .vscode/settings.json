@@ -3,6 +3,7 @@
         "time.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "stdio.h": "c"
     }
 }
