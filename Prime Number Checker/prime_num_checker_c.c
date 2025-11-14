@@ -11,13 +11,13 @@ int main(){
     /*ask for input with validation*/
     do {
         printf("Please input a positive integer: ");
-        // Try to read an integer. scanf returns the number of items successfully read.
-        // It also leaves non-matching characters in the input buffer.
-        if (scanf("%d%c", &x, &term) != 2 || term != '\n' || x <= 0) {
+        if (scanf("%d%c", &x, &term) != 2 || term != '\n' || x <= 0) {         
+            
             printf("Invalid input. Please enter a positive integer.\n");
-            // Clear the input buffer in case of invalid input
-            // (e.g., if the user typed "abc" or "123a")
-            if (term != '\n') { // Only clear if there's something to clear besides the newline
+
+            /* scanf checks if no of input is 2, checks if input includes '\n' or negative no.
+            else give error */
+            if (term != '\n') { // only clear if there's something to clear besides the newline
                 while (getchar() != '\n');
             }
         } else {
@@ -36,7 +36,7 @@ int main(){
 void prime_check(int x)
 {
     // Handle special cases first
-    if (x <= 1) {
+     if (x <= 1) {
         printf("%d is not a prime number.\n", x);
     } else if (x == 2) {
         printf("%d is a prime number.\n", x);
@@ -57,5 +57,6 @@ void prime_check(int x)
         } else {
             printf("%d is not a prime number.\n", x);
         }
-    }
+    } 
+    //
 }
