@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 // binary1 for virtual memory page number
-// binary2 for virtual page offset
+// binary for virtual page offset
 
 int main() {
     // Page table
@@ -13,7 +13,7 @@ int main() {
     char binary1[6], binary2[9]; // buffers for input
     int decimal1, decimal2;
 
-    printf("========================================= Convert Virtual Address to Physical Address =========================================\n");
+    printf("================ Convert Virtual Address to Physical Address ================\n");
 
     // Input virtual page number (5-bit)
     while (1) {
@@ -27,15 +27,13 @@ int main() {
         } 
 
         if (!valid) {
-            printf("Please enter a valid binary number (only 0s and 1s allowed).\n");
+            printf("Please enter a valid 5 bit binary number (only 0s and 1s allowed).\n");
             continue;
         }
 
         decimal1 = (int)strtol(binary1, NULL, 2);
         if (decimal1 >= 0 && decimal1 <= 31) {
             break;
-        } else {
-            printf("Input a valid binary that is less than or equals to 31.\n");
         }
     }
 
@@ -51,15 +49,13 @@ int main() {
         }
 
         if (!valid) {
-            printf("Please enter a valid binary number (only 0s and 1s allowed).\n");
+            printf("Please enter a valid 8 bit binary number (only 0s and 1s allowed).\n");
             continue;
         }
 
         decimal2 = (int)strtol(binary2, NULL, 2);
         if (decimal2 >= 0 && decimal2 <= 255) {
             break;
-        } else {
-            printf("Input a valid binary that is less than or equals to 255.\n");
         }
     }
     // Format page offset to 8-bit binary
@@ -83,7 +79,7 @@ int main() {
     grouped_offset[9] = '\0';
 
 
-    printf("========================================================== Results ============================================================\n");
+    printf("================================= Results ===================================\n");
 
     // Virtual page number binary (5 bits)
     char virtual_binary[6];

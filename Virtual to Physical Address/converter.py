@@ -33,7 +33,7 @@ Process_A = [
     3,      # Page 30
     2       # Page 31
 ]
-print("========================================= Convert Virtual Address to Physical Address Python =========================================")
+print("=========== Convert Virtual Address to Physical Address Python ===========")
 
 while True:
     binary1 = input("Enter virtual memory page number (5 bits):")
@@ -59,10 +59,11 @@ while True:
     else:
         print("Please enter a valid binary number (only 0s and 1s allowed).\n")
 
+
 binary2 = format(decimal2, '08b') #converts decimal to binary
 grouped_binary2 = binary2[:4] + ' ' + binary2[4:] 
 
-print("========================================================== Results ============================================================")
+print("================================= Results ================================")
 
 pageno = decimal1
 pagenoint = int(pageno)
