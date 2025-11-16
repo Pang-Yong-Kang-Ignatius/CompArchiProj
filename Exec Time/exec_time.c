@@ -4,18 +4,8 @@
 
 #define MAX_TYPES 10  // Maximum number of instruction types allowed
 
-// Function to calculate execution time
-double calculate_exec_time(double t_clk, long long count[], double cpi[], int num_types) {
-    double total_cycles = 0.0;
-    
-    // Compute total cycles
-    for (int i = 0; i < num_types; i++) {
-        total_cycles += count[i] * cpi[i];
-    }
-    
-    // Return execution time
-    return t_clk * total_cycles;
-}
+// Function prototype
+double calculate_exec_time(double t_clk, long long count[], double cpi[], int num_types);
 
 int main(void) {
     int num_types;
@@ -82,4 +72,17 @@ int main(void) {
     printf("-------------------------------------------\n");
 
     return 0;
+}
+
+// Function to calculate execution time
+double calculate_exec_time(double t_clk, long long count[], double cpi[], int num_types) {
+    double total_cycles = 0.0;
+    
+    // Compute total cycles
+    for (int i = 0; i < num_types; i++) {
+        total_cycles += count[i] * cpi[i];
+    }
+    
+    // Return execution time
+    return t_clk * total_cycles;
 }
