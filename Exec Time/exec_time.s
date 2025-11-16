@@ -1,4 +1,22 @@
 
+        .data
+        .align 3
+
+// Storage - using arrays 
+clock_time:     .double 0.0
+count:          .quad   0, 0, 0, 0      // Array of 4 long long values
+cpi:            .double 0.0, 0.0, 0.0, 0.0  // Array of 4 double values
+
+// Formats
+fmt_double:     .asciz "%lf"
+fmt_ll:         .asciz "%lld"
+out_fmt:        .asciz "\nThe execution time of this software program is %.6f second.\n"
+
+// Dynamic prompts using printf format strings
+prompt_clk:     .asciz "1) The value of clock cycle time (in second): "
+prompt_count:   .asciz "%d) The counts of Type %d instruction (Instruction%d_count): "
+prompt_cpi:     .asciz "%d) The CPI of Type %d instruction (CPI_%d): "
+
         .text
         .global main
 
@@ -102,21 +120,3 @@ calc_done:
         mov     w0, 0
         ldp     x29, x30, [sp], 16
         ret
-
-        .data
-        .align 3
-
-// Storage - using arrays 
-clock_time:     .double 0.0
-count:          .quad   0, 0, 0, 0      // Array of 4 long long values
-cpi:            .double 0.0, 0.0, 0.0, 0.0  // Array of 4 double values
-
-// Formats
-fmt_double:     .asciz "%lf"
-fmt_ll:         .asciz "%lld"
-out_fmt:        .asciz "\nThe execution time of this software program is %.6f second.\n"
-
-// Dynamic prompts using printf format strings
-prompt_clk:     .asciz "1) The value of clock cycle time (in second): "
-prompt_count:   .asciz "%d) The counts of Type %d instruction (Instruction%d_count): "
-prompt_cpi:     .asciz "%d) The CPI of Type %d instruction (CPI_%d): "

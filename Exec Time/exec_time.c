@@ -1,5 +1,3 @@
-// Program to calculate the execution time of a software program
-// Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
 #include <stdio.h>
 
 #define MAX_TYPES 10  // Maximum number of instruction types allowed
@@ -32,7 +30,7 @@ int main(void) {
             break;
         } else {
             printf("   Invalid. Please enter a positive number.\n");
-            // clear invalid input
+            
             while (getchar() != '\n');
         }
     }
@@ -63,7 +61,8 @@ int main(void) {
         }
     }
 
-    // Calculate execution time using the function
+    // Calculate execution time using the function 
+    // Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
     exec_time = calculate_exec_time(t_clk, count, cpi, num_types);
 
     // Output result

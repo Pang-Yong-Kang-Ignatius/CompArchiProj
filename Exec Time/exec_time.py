@@ -1,10 +1,9 @@
-# Program to calculate the execution time of a software program
-# Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
+# Execution Time Calculation Program
 
 MAX_TYPES = 10  # Maximum number of instruction types allowed
 
-
 # Function to calculate execution time
+# Formula: ExecutionTime = ClockCycleTime * Σ(InstructionCount_i * CPI_i)
 def calculate_exec_time(t_clk, count, cpi, num_types):
     total_cycles = 0.0
     
