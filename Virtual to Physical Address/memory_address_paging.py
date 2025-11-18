@@ -43,9 +43,9 @@ while True:
         if decimal1 <= 31:
             break  # stop the loop after valid conversion
         else:
-            print("Input a valid binary that is less than or equals to 31.\n")
+            print("Input a valid binary that is less than or equals to 31.")
     else:
-        print("Please enter a valid binary number (only 0s and 1s allowed).\n")
+        print("Please enter a valid binary number (only 0s and 1s allowed).")
     
 
 while True:
@@ -55,9 +55,9 @@ while True:
         if decimal2 <= 255:
             break  # stop the loop after valid conversion
         else:
-            print("Input a valid binary that is less than or equals to 255.\n")
+            print("Input a valid binary that is less than or equals to 255.")
     else:
-        print("Please enter a valid binary number (only 0s and 1s allowed).\n")
+        print("Please enter a valid binary number (only 0s and 1s allowed).")
 
 
 binary2 = format(decimal2, '08b') #converts decimal to binary
