@@ -20,7 +20,7 @@ prime_check:
 
     // x <= 1 block:
     LDR     X1, =.L_not_prime_msg   // Load address of "not prime" string into X1
-    MOV     W0, W0                  // Move 'x' to W0 for printf (already there, but good practice)
+    MOV     W0, W0                  // Move 'x' to W0 for printf
     BL      printf                  // Call printf
     B       .L_prime_check_exit     // Jump to exit
 
@@ -52,7 +52,7 @@ prime_check:
     // C code: int is_prime = 1; // Assume it's prime until a divisor is found
     MOV     W1, #1                  // W1 holds is_prime = 1
 
-    // C code: for (int i = 3; (long long)i * i <= x; i += 2) {
+    // C code: for (int i = 3; (long long)i * i <= x; i += 2) 
     MOV     W2, #3                  // W2 holds i = 3
 
 .L_loop_condition:
